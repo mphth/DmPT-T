@@ -182,21 +182,7 @@ LAB 3 - ???? - abc3
   --------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Nháp
 
-
-
-
-
-
-  sudo tcpdump -tttt -r /var/log/tcpdump_ssh_bruteforce.pcap > /var/log/tcpdump_ssh_bruteforce.log
-
-
-
-  hydra -l ubuntu -x 1:8:Aa1 ssh://172.0.0.2
-
-
-  sudo tcpdump -i any port 22 -w /var/log/tcpdump_ssh_bruteforce.pcap -Z root
 
 
 /etc/filebeat/filebeat.yml  -  File mẫu
@@ -428,7 +414,7 @@ dockerfile client chuẩn
     - add_cloud_metadata: ~\n\
     - add_docker_metadata: ~\n\
     - add_kubernetes_metadata: ~" >> /etc/filebeat/filebeat.yml
-    --------------------------------------------------------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------------------------------------------------------
 
 
 dockerfile client mẫu
@@ -493,7 +479,7 @@ dockerfile client mẫu
     - add_cloud_metadata: ~\n\
     - add_docker_metadata: ~\n\
     - add_kubernetes_metadata: ~" >> /etc/filebeat/filebeat.yml
-    --------------------------------------------------------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
