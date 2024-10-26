@@ -1,0 +1,556 @@
+Command
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  touch treataslocal
+  gparted
+  tail -f /home/student/labtainer/trunk/logs/docker_build.log
+  docker images
+
+  /etc/filebeat/filebeat.yml
+  /etc/elasticsearch/elasticsearch.yml
+  /etc/kibana/kibana.yml
+
+  sudo nano /etc/filebeat/filebeat.yml
+  sudo nano /etc/elasticsearch/elasticsearch.yml
+  sudo nano /etc/kibana/kibana.yml
+
+  sudo systemctl start elastic && sudo systemctl start kibana
+  sudo systemctl start filebeat
+
+  docker images | grep '^abc2\.' | awk '{print $3}' | xargs -I {} docker rmi -f {}
+
+
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+LAB 1 - SSH log - abc1
+
+  ========= Yêu cầu cấu hình =========
+
+  Dockerfile client mẫu (sv điền auth.log, ip, port)
+  Dockerfile server chuẩn (sv run service)
+  Dockerfile attacker chuẩn (sv run ssh)
+
+  ========= Client =========
+
+  sudo nano /etc/filebeat/filebeat.yml
+  #
+  - type: filestream
+    id: my-filestream-id
+    enabled: true
+    paths:
+      - /var/log/auth.log
+
+  172.0.0.3:5601
+  172.0.0.3:9200         
+  #
+  sudo cat /etc/filebeat/filebeat.yml    ---> #checkwork1 (172.0.0.3:9200)
+
+  sudo systemctl start filebeat
+
+  sudo systemctl start elasticsearch && sudo systemctl start kibana
+
+  ========= Attacker =========
+
+  ssh ubuntu@172.0.0.2                   ---> #checkwork2 (172.0.0.2)        
+
+  ========= Server =========
+
+  curl -X GET "http://172.0.0.3:9200/filebeat-*/_search?pretty" -H 'Content-Type: application/json' -d '{ 
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "match": {
+              "message": "sshd"
+            }
+          },
+          {
+            "range": {
+              "@timestamp": {
+                "gte": "now-5m",
+                "lte": "now"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "size": 100
+  }' | jq '.hits.hits[]._source.message' > ssh.txt && cat ssh.txt     --->  #checkwork3 (sshd)        
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+LAB 2 - ICMP Flood - abc22
+  
+  ========= Yêu cầu cấu hình =========
+
+  Dockerfile client mẫu (sv điền tcpdump_icmp.log, ip, port)
+  Dockerfile server chuẩn (sv run service)
+  Dockerfile attacker chuẩn (sv run hping3)
+ 
+  ========= Client =========
+
+  sudo echo 'LOG_FILE="/var/log/tcpdump_icmp.log"
+  sudo tcpdump -i any -A icmp > $LOG_FILE' > tcpdump_icmp.sh
+
+  sudo cat tcpdump_icmp.sh      --->      #checkwork1 (LOG_FILE="/var/log/tcpdump_icmp.log")
+
+  sudo nano /etc/filebeat/filebeat.yml   
+
+  - type: log
+    id: my-log-id
+    enabled: true
+    paths:
+      - /var/log/tcpdump_icmp.log
+
+  172.0.0.3:5601
+  172.0.0.3:9200
+
+  sudo cat /etc/filebeat/filebeat.yml          --->   #checkwork2 (172.0.0.3:9200)
+
+  sudo systemctl start filebeat
+
+  sudo chmod +x tcpdump_icmp.sh && sudo ./tcpdump_icmp.sh
+
+  ========= Attacker =========
+
+  sudo hping3 --icmp -d 120 -c 10000 172.0.0.2    --->   #checkwork3 (hping3 --icmp)
+
+  ========= Server =========
+
+  sudo systemctl start elasticsearch && sudo systemctl start kibana
+
+  curl -X GET "localhost:9200/filebeat-*/_search" -H 'Content-Type: application/json' -d'
+  {
+    "query": {
+      "match": {
+        "message": "icmp"
+      }
+    }
+  }' | jq '.hits.hits[]._source | {timestamp: .["@timestamp"], message: .message}' > icmp.txt && cat icmp.txt ---> #checkwork4 (ICMP echo reply)
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+LAB 3 - ???? - abc3
+
+  ========= Yêu cầu cấu hình =========
+
+  Dockerfile client mẫu (sv điền ???, ip, port)
+  Dockerfile server chuẩn (sv run service)
+  Dockerfile attacker chuẩn (sv run ???)
+  
+  ========= Client =========
+
+  sudo echo 'LOG_FILE="/var/log/tcpdump_icmp.log"
+  sudo tcpdump -i any -A icmp > $LOG_FILE' > tcpdump_icmp.sh
+
+  sudo cat tcpdump_icmp.sh      ----------------------------------------------------->      #checkwork1 (LOG_FILE="/var/log/tcpdump_icmp.log")
+
+  sudo nano /etc/filebeat/filebeat.yml   
+
+  - type: log
+    id: my-log-id
+    enabled: true
+    paths:
+      - /var/log/tcpdump_icmp.log
+
+  172.0.0.3:5601
+  172.0.0.3:9200
+
+  sudo cat /etc/filebeat/filebeat.yml          ------------------------------------------------------------------>   #checkwork2 (172.0.0.3)
+
+  sudo systemctl start filebeat
+
+  sudo chmod +x tcpdump_icmp.sh && sudo ./tcpdump_icmp.sh
+
+  ========= Attacker =========
+
+  sudo hping3 --icmp -d 120 -c 10000 172.0.0.2    ------------------------------------------------------------->   #checkwork3 (hping3 --icmp)
+
+  ========= Server =========
+
+  sudo systemctl start elasticsearch && sudo systemctl start kibana
+
+  curl -X GET "localhost:9200/filebeat-*/_search" -H 'Content-Type: application/json' -d'
+  {
+    "query": {
+      "match": {
+        "message": "icmp"
+      }
+    }
+  }' | jq '.hits.hits[]._source | {timestamp: .["@timestamp"], message: .message}' > icmp.txt && cat icmp.txt -> #checkwork4 (ICMP echo reply)
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Nháp
+
+
+
+
+
+
+  sudo tcpdump -tttt -r /var/log/tcpdump_ssh_bruteforce.pcap > /var/log/tcpdump_ssh_bruteforce.log
+
+
+
+  hydra -l ubuntu -x 1:8:Aa1 ssh://172.0.0.2
+
+
+  sudo tcpdump -i any port 22 -w /var/log/tcpdump_ssh_bruteforce.pcap -Z root
+
+
+/etc/filebeat/filebeat.yml  -  File mẫu
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  filebeat.inputs:
+  -  type: ...
+    id: ...
+    enabled: ...
+    paths:
+      - /.../.../...
+
+  filebeat.config.modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+  setup.template.settings:
+    index.number_of_shards: 1
+
+  setup.kibana:
+    host: "...:..."
+
+  output.elasticsearch:
+    hosts: ["...:..."]
+
+  processors:
+    - add_host_metadata:
+        when.not.contains.tags: forwarded
+    - add_cloud_metadata: ~
+    - add_docker_metadata: ~
+    - add_kubernetes_metadata: ~
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+/etc/filebeat/filebeat.yml  -  File chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  filebeat.inputs:
+  - type: filestream
+    id: my-filestream-id
+    enabled: true
+    paths:
+      - /var/log/auth.log
+  - type: log
+    id: my-log-id
+    enabled: true
+    paths:
+      - /var/log/tcpdump_icmp.log
+
+  filebeat.config.modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+  setup.template.settings:
+    index.number_of_shards: 1
+
+  setup.kibana:
+    host: "172.0.0.3:5601"
+
+  output.elasticsearch:
+    hosts: ["172.0.0.3:9200"]
+
+  processors:
+    - add_host_metadata:
+        when.not.contains.tags: forwarded
+    - add_cloud_metadata: ~
+    - add_docker_metadata: ~
+    - add_kubernetes_metadata: ~
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+/etc/elasticsearch/elasticsearch.yml  -  File chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  path.data: /var/lib/elasticsearch
+  path.logs: /var/log/elasticsearch
+  network.host: 0.0.0.0
+  http.port: 9200
+  discovery.type: single-node
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+/etc/kibana/kibana.yml  -  File chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  server.port: 5601
+  server.host: "0.0.0.0"
+  elasticsearch.hosts: ["http://localhost:9200"]
+  elasticsearch.ssl.verificationMode: 'none'
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+dockerfile attacker chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get upgrade -y 
+
+  RUN sudo apt-get install wget -y
+
+  RUN sudo apt-get install curl -y
+
+  RUN sudo apt-get install apt-utils -y
+
+  RUN sudo apt-get install openjdk-11-jdk -y
+
+  RUN sudo apt-get install apt-transport-https -y
+
+  RUN sudo apt-get install gpg -y
+
+  RUN sudo apt-get install firefox -y
+
+  RUN sudo apt-get install ssh -y
+
+  RUN sudo apt-get install hping3 -y
+
+  RUN sudo apt-get install hydra -y
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+dockerfile server chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get upgrade -y 
+
+  RUN sudo apt-get install wget -y
+
+  RUN sudo apt-get install curl -y
+
+  RUN sudo apt-get install apt-utils -y
+
+  RUN sudo apt-get install openjdk-11-jdk -y
+
+  RUN sudo apt-get install apt-transport-https -y
+
+  RUN sudo apt-get install gpg -y
+
+  RUN sudo apt-get install jq -y
+
+  RUN sudo apt-get install firefox -y
+
+  RUN sudo apt-get install ssh -y
+
+  RUN curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elastic.gpg
+
+  RUN echo "deb [signed-by=/usr/share/keyrings/elastic.gpg] https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get install elasticsearch -y
+
+  RUN sudo apt-get install kibana -y 
+
+  #RUN sudo apt-get install logstash -y
+
+  RUN echo "" > /etc/elasticsearch/elasticsearch.yml
+
+  RUN echo "path.data: /var/lib/elasticsearch\n\
+  path.logs: /var/log/elasticsearch\n\
+  network.host: 0.0.0.0\n\
+  http.port: 9200\n\
+  discovery.type: single-node" >> /etc/elasticsearch/elasticsearch.yml
+
+  RUN echo "" > /etc/kibana/kibana.yml
+
+  RUN echo "server.port: 5601\n\
+  server.host: \"0.0.0.0\"\n\
+  elasticsearch.hosts: [\"http://localhost:9200\"]\n\
+  elasticsearch.ssl.verificationMode: 'none'" >> /etc/kibana/kibana.yml
+  --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+dockerfile client chuẩn
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get upgrade -y 
+
+  RUN sudo apt-get install wget -y
+
+  RUN sudo apt-get install curl -y
+
+  RUN sudo apt-get install apt-utils -y
+
+  RUN sudo apt-get install openjdk-11-jdk -y
+
+  RUN sudo apt-get install apt-transport-https -y
+
+  RUN sudo apt-get install gpg -y
+
+  RUN sudo apt-get install firefox -y
+
+  RUN sudo apt-get install ssh -y
+
+  RUN sudo apt-get install jq -y
+
+  RUN sudo apt-get install tcpdump -y
+
+  RUN curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elastic.gpg
+
+  RUN echo "deb [signed-by=/usr/share/keyrings/elastic.gpg] https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get install filebeat -y
+
+  RUN echo "" > /etc/filebeat/filebeat.yml
+
+  RUN echo "filebeat.inputs:\n\
+  - type: filestream\n\
+    id: my-filestream-id\n\
+    enabled: true\n\
+    paths:\n\
+      - /var/log/*.log\n\
+  \n\
+  filebeat.config.modules:\n\
+    path: \${path.config}/modules.d/*.yml\n\
+    reload.enabled: false\n\
+  \n\
+  setup.template.settings:\n\
+    index.number_of_shards: 1\n\
+  \n\
+  setup.kibana:\n\
+    host: \"172.0.0.3:5601\"\n\
+  \n\
+  output.elasticsearch:\n\
+    hosts: [\"172.0.0.3:9200\"]\n\
+  \n\
+  processors:\n\
+    - add_host_metadata:\n\
+        when.not.contains.tags: forwarded\n\
+    - add_cloud_metadata: ~\n\
+    - add_docker_metadata: ~\n\
+    - add_kubernetes_metadata: ~" >> /etc/filebeat/filebeat.yml
+    --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+dockerfile client mẫu
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get upgrade -y 
+
+  RUN sudo apt-get install wget -y
+
+  RUN sudo apt-get install curl -y
+
+  RUN sudo apt-get install apt-utils -y
+
+  RUN sudo apt-get install openjdk-11-jdk -y
+
+  RUN sudo apt-get install apt-transport-https -y
+
+  RUN sudo apt-get install gpg -y
+
+  RUN sudo apt-get install firefox -y
+
+  RUN sudo apt-get install ssh -y
+
+  RUN sudo apt-get install jq -y
+
+  RUN sudo apt-get install tcpdump -y
+
+  RUN curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elastic.gpg
+
+  RUN echo "deb [signed-by=/usr/share/keyrings/elastic.gpg] https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+
+  RUN sudo apt-get update -y 
+
+  RUN sudo apt-get install filebeat -y
+
+  RUN echo "" > /etc/filebeat/filebeat.yml
+
+  RUN echo "filebeat.inputs:\n\
+  - type: ...\n\
+    id: ...\n\
+    enabled: ...\n\
+    paths:\n\
+      - /.../.../...\n\
+  \n\
+  filebeat.config.modules:\n\
+    path: \${path.config}/modules.d/*.yml\n\
+    reload.enabled: false\n\
+  \n\
+  setup.template.settings:\n\
+    index.number_of_shards: 1\n\
+  \n\
+  setup.kibana:\n\
+    host: \"...\"\n\
+  \n\
+  output.elasticsearch:\n\
+    hosts: [\"...\"]\n\
+  \n\
+  processors:\n\
+    - add_host_metadata:\n\
+        when.not.contains.tags: forwarded\n\
+    - add_cloud_metadata: ~\n\
+    - add_docker_metadata: ~\n\
+    - add_kubernetes_metadata: ~" >> /etc/filebeat/filebeat.yml
+    --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
